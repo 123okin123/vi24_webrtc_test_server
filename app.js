@@ -27,9 +27,9 @@ wss.on('connection', (ws) => {
     ws.on('message', (data) => {
         console.log('Got message from '+ id +': ' + data);
         wss.clients.forEach((client) => {
-           // if (client !== ws) {
+            if (client !== ws) {
                 client.send(data)
-          //  }
+            }
         });
 });
 });
