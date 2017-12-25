@@ -9,7 +9,7 @@ const SocketServer = require('ws').Server;
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
-server.use((req, res) => res.send('Hello'));
+//server.use((req, res) => res.send('Hello'));
 server.listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
 const wss = new SocketServer({ server });
