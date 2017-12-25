@@ -1,15 +1,17 @@
 'use strict';
 
-const express = require('express');
+const http = require("http");
+const express = require("express");
+const app = express();
 const SocketServer = require('ws').Server;
 
 
 const PORT = process.env.PORT || 3000;
 
 
-const server = express();
+const server = http.createServer(app);
 
-server.use((req, res) => res.send('Hello'));
+//server.use((req, res) => res.send('Hello'));
 server.listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
 const wss = new SocketServer({ server });
