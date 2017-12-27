@@ -68,19 +68,17 @@ ws.onmessage = (e) => {
     trace('ws message: ' + json);
     switch (json.type) {
         case 'offer':
-            trace('got offer');
-            peerConnection.setRemoteDescription(new RTCSessionDescription(json.sdp)).then(() => {
+            trace('got offer: ' + json.sdp);
+
+            peerConnection.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: json.sdp})).then(() => {
                 trace('did set offer as remote sdp');
+
                 peerConnection.createAnswer().then((desc) => {
-                        trace('did generate answer"');
+                        trace('did generate answer');
                         peerConnection.setLocalDescription(desc).then(
                             (pc) => {
                                 trace('did set answer as local sdp');
-                                const json = {
-                                    type: 'answer',
-                                    sdp: desc
-                                };
-                                ws.send(JSON.stringify(json), () => {trace('did send answer')});
+                                ws.send(JSON.stringify(desc), () => {trace('did send answer')});
                             },
                             onSetSessionDescriptionError
                         );
@@ -92,10 +90,37 @@ ws.onmessage = (e) => {
 
             break;
         case 'answer':
-            trace('got answer. Not implemented');
+            trace('got answer');
+            peerConnection.setRemoteDescription(new RTCSessionDescription({type: 'answer', sdp: json.sdp})).then( () => {
+                trace('did set answer as remote sdp');
+            })
             break;
         case 'ice':
             trace('got ice: ' + json);
+            if (json.hasOwnProperty('sdpMid')) {
+                const candidate = new RTCIceCandidate({
+                    candidate: json.sdp,
+                    sdpMLineIndex: json.sdpMLineIndex,
+                    sdpMid: json.sdpMid
+                });
+                trace(candidate);
+                peerConnection.addIceCandidate(candidate, () => {
+                    trace('did add ice');
+                }, (error) => {
+                    trace(error);
+                });
+            } else {
+                const candidate = new RTCIceCandidate({
+                    candidate: json.sdp,
+                    sdpMLineIndex: json.sdpMLineIndex
+                });
+                trace(candidate);
+                peerConnection.addIceCandidate(candidate, () => {
+                    trace('did add ice');
+                }, (error) => {
+                    trace(error);
+                });
+            }
 
         default:
             break;
@@ -113,9 +138,6 @@ ws.onmessage = (e) => {
 
 
 
-function gotStream(stream) {
-
-}
 
 function start() {
     trace('Requesting local stream');
@@ -158,6 +180,11 @@ function start() {
             peerConnection.oniceconnectionstatechange = function(e) {
                 onIceStateChange(peerConnection, e);
             };
+            peerConnection.onaddstream = (streamEvent) => {
+                if (remoteVideo.srcObject !== streamEvent.stream) {
+                    remoteVideo.srcObject = streamEvent.stream;
+                }
+            }
 
 
 
@@ -184,7 +211,15 @@ function call() {
     peerConnection.createOffer(
         offerOptions
     ).then(
-        () => {},
+        (desc) => {
+            peerConnection.setLocalDescription(desc).then(() => {
+                const json = {
+                    "type": "offer",
+                    "sdp": desc.sdp,
+                }
+                ws.send(JSON.stringify(json))
+            })
+        },
         onCreateSessionDescriptionError
     );
 }
@@ -196,19 +231,16 @@ function onSetSessionDescriptionError(error) {
     trace('Failed to set session description: ' + error.toString());
 }
 
-function gotRemoteStream(e) {
-    if (remoteVideo.srcObject !== e.streams[0]) {
-        remoteVideo.srcObject = e.streams[0];
-    }
-}
 
 
 function onIceCandidate(pc, event) {
+    trace('did generate ICE');
     const json = {
         "type": "ice",
         "candidate": event.candidate,
     }
     ws.send(JSON.stringify(json));
+    trace('did send ICE');
 }
 
 function onAddIceCandidateSuccess(pc) {
@@ -217,7 +249,13 @@ function onAddIceCandidateError(pc, error) {
 }
 
 function onIceStateChange(pc, event) {
-    trace.log('ICE state change event: ', event);
+    trace('ICE state change event: ' + pc.iceConnectionState);
+    switch (pc.iceConnectionState) {
+        case 'connected':
+            callButton.disabled = true;
+            break;
+        default: break;
+    }
 }
 
 function hangup() {
