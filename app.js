@@ -17,6 +17,9 @@ app.use(express.static(__dirname + '/public'));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname+ 'public' + 'index.html'));
 });
+app.get('/keepalive', (req, res) => {
+    res.send('success');
+});
 
 const wss = new SocketServer({ server });
 let clientId = 0;

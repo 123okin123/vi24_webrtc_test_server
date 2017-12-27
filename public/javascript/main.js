@@ -13,6 +13,7 @@ window.onload = function(){
 const startButton = document.getElementById('startButton');
 const callButton = document.getElementById('callButton');
 const hangupButton = document.getElementById('hangupButton');
+const timeLabel = document.getElementById('timeLabel');
 callButton.disabled = true;
 hangupButton.disabled = true;
 startButton.onclick = start;
@@ -48,6 +49,7 @@ remoteVideo.onresize = function() {
     if (startTime) {
         var elapsedTime = window.performance.now() - startTime;
         trace('Setup time: ' + elapsedTime.toFixed(3) + 'ms');
+        timeLabel.innerText = 'Time for establishing PeerConnection: ' + elapsedTime.toFixed(3) + 'ms';
         startTime = null;
     }
 };
@@ -61,6 +63,7 @@ ws.onopen = () => {
 
 ws.onclose = () => {
     trace('ws disconnected');
+    alert('Websocket disconnected. Reload page to reconnect.');
 }
 
 ws.onmessage = (e) => {
@@ -69,7 +72,7 @@ ws.onmessage = (e) => {
     switch (json.type) {
         case 'offer':
             trace('got offer: ' + json.sdp);
-
+            startTime = window.performance.now();
             peerConnection.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: json.sdp})).then(() => {
                 trace('did set offer as remote sdp');
 
@@ -99,9 +102,9 @@ ws.onmessage = (e) => {
             trace('got ice: ' + json);
             if (json.hasOwnProperty('sdpMid')) {
                 const candidate = new RTCIceCandidate({
-                    candidate: json.sdp,
-                    sdpMLineIndex: json.sdpMLineIndex,
-                    sdpMid: json.sdpMid
+                    candidate: json.candidate.candidate,
+                    sdpMLineIndex: json.candidate.sdpMLineIndex,
+                    sdpMid: json.candidate.sdpMid
                 });
                 trace(candidate);
                 peerConnection.addIceCandidate(candidate, () => {
@@ -111,8 +114,8 @@ ws.onmessage = (e) => {
                 });
             } else {
                 const candidate = new RTCIceCandidate({
-                    candidate: json.sdp,
-                    sdpMLineIndex: json.sdpMLineIndex
+                    candidate: json.candidate.candidate,
+                    sdpMLineIndex: json.candidate.sdpMLineIndex
                 });
                 trace(candidate);
                 peerConnection.addIceCandidate(candidate, () => {
@@ -172,7 +175,7 @@ function start() {
             ]};
 
              peerConnection = new RTCPeerConnection(config, {});
-            trace('Created local peer connection object pc1');
+            trace('Created local peer connection');
             peerConnection.onicecandidate = function(e) {
                 onIceCandidate(peerConnection, e);
             };
