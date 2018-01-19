@@ -81,7 +81,8 @@ ws.onmessage = (e) => {
                         peerConnection.setLocalDescription(desc).then(
                             (pc) => {
                                 trace('did set answer as local sdp');
-                                ws.send(JSON.stringify(desc), () => {trace('did send answer')});
+                                ws.send(JSON.stringify(desc));
+                                trace('did send answer');
                             },
                             onSetSessionDescriptionError
                         );

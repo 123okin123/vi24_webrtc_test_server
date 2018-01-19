@@ -10,9 +10,9 @@ const SocketServer = require('ws').Server;
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
-//server.use((req, res) => res.send('Hello'));
 server.listen(PORT, () => console.log(`Listening on ${ PORT }`));
 
+// Routing
 app.use(express.static(__dirname + '/public'));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname+ 'public' + 'index.html'));
@@ -21,6 +21,9 @@ app.post('/keepalive', (req, res) => {
     res.send('success');
 });
 
+
+
+//WebSocket
 const wss = new SocketServer({ server });
 let clientId = 0;
 wss.on('connection', (ws) => {
